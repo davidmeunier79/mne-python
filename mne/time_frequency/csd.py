@@ -68,6 +68,7 @@ class CrossSpectralDensity(object):
 
     def __init__(self, data, ch_names, frequencies, n_fft, tmin=None,
                  tmax=None, projs=None):
+	
         data = np.asarray(data)
         if data.ndim == 1:
             data = data[:, np.newaxis]
@@ -682,7 +683,7 @@ def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
 @verbose
 def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                    picks=None, n_fft=None, bandwidth=None, adaptive=False,
-                   low_bias=True, projs=None, n_jobs=1, verbose=None):
+                   low_bias=True, projs=None, n_jobs=1, verbose=None, on_epochs = False):
     """Estimate cross-spectral density from epochs using Morlet wavelets.
 
     Parameters
@@ -721,7 +722,9 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         If not ``None``, override default verbose level
         (see :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
         for more).
-
+    on_epochs : bool
+        For computation over each epoch separately, particularly useful for DICS 
+        
     Returns
     -------
     csd : instance of CrossSpectralDensity
@@ -741,14 +744,14 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                                 tmin=tmin, tmax=tmax, ch_names=epochs.ch_names,
                                 n_fft=n_fft, bandwidth=bandwidth,
                                 adaptive=adaptive, low_bias=low_bias,
-                                projs=projs, n_jobs=n_jobs, verbose=verbose)
+                                projs=projs, n_jobs=n_jobs, verbose=verbose, on_epochs = on_epochs)
 
 
 @verbose
 def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
                          tmax=None, ch_names=None, n_fft=None, bandwidth=None,
                          adaptive=False, low_bias=True, projs=None, n_jobs=1,
-                         verbose=None):
+                         verbose=None, on_epochs = False):
     """Estimate cross-spectral density from an array using Morlet wavelets.
 
     Parameters
@@ -794,6 +797,9 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
         (see :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
         for more).
 
+    on_epochs : bool
+        For computation over each epoch separately, particularly useful for DICS 
+        
     Returns
     -------
     csd : instance of CrossSpectralDensity
@@ -836,7 +842,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
                                  params=[sfreq, n_times, window_fun, eigvals,
                                          freq_mask, n_fft, adaptive],
                                  n_fft=n_fft, ch_names=ch_names, projs=projs,
-                                 n_jobs=n_jobs, verbose=verbose)
+                                 n_jobs=n_jobs, verbose=verbose, on_epochs = on_epochs)
 
 
 @verbose
@@ -1067,7 +1073,7 @@ def _prepare_csd_array(X, sfreq, t0, tmin, tmax, fmin=None, fmax=None):
 
 @verbose
 def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
-                          ch_names=None, projs=None, n_jobs=1, verbose=None):
+                          ch_names=None, projs=None, n_jobs=1, verbose=None, on_epochs = True):
     """Estimate cross-spectral density with a given function.
 
     This function will apply the given CSD function in parallel across epochs.
@@ -1110,7 +1116,11 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
     logger.info('Computing cross-spectral density from epochs...')
 
     n_freqs = len(frequencies)
-    csds_mean = np.zeros((n_channels * (n_channels + 1) // 2, n_freqs),
+    
+    if on_epochs:
+        all_csds = []
+    else:
+        csds_mean = np.zeros((n_channels * (n_channels + 1) // 2, n_freqs),
                          dtype=np.complex)
 
     # Prepare the function that does the actual CSD computation for parallel
@@ -1129,17 +1139,24 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
 
         csds = parallel(my_csd(this_epoch, *params)
                         for this_epoch in epoch_block)
-
-        # Add CSD matrices in-place
-        csds_mean += np.sum(csds, axis=0)
-
-    csds_mean /= n_epochs
+        if on_epochs:
+            all_csds.extend(csds)
+        else:
+            #Add CSD matrices in-place
+            csds_mean += np.sum(csds, axis=0)
+            
     logger.info('[done]')
 
     if ch_names is None:
         ch_names = ['SERIES%03d' % (i + 1) for i in range(n_channels)]
 
-    return CrossSpectralDensity(csds_mean, ch_names=ch_names, tmin=times[0],
+    if on_epochs:
+        return [CrossSpectralDensity(data = csd , ch_names=ch_names, tmin=times[0],
+                                tmax=times[-1], frequencies=frequencies,
+                                n_fft=n_fft, projs=projs) for csd in all_csds]
+    else:
+        csds_mean /= n_epochs
+        return CrossSpectralDensity(data = csds_mean, ch_names=ch_names, tmin=times[0],
                                 tmax=times[-1], frequencies=frequencies,
                                 n_fft=n_fft, projs=projs)
 
