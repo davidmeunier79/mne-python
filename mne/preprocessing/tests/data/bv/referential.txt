@@ -1,0 +1,4 @@
+inv /hpc/comco/basanisi.r/Databases/db_brainvisa/meg_te/{0}/t1mri/default_acquisition/registration/RawT1-{0}_default_acquisition_TO_Talairach-MNI.trm
+/hpc/comco/basanisi.r/Databases/db_freesurfer/meg_te/{0}/mri/transforms/{0}_scanner_to_mni.trm
+/hpc/comco/basanisi.r/Databases/db_freesurfer/meg_te/{0}/mri/transforms/orig_{0}_TO_Scanner_Based.trm
+/hpc/comco/basanisi.r/Databases/db_freesurfer/meg_te/{0}/mri/transforms/{0}_orig_TO_meshes.trm

@@ -87,6 +87,8 @@ from .dipole import read_dipole, Dipole, DipoleFixed, fit_dipole
 from .channels import equalize_channels, rename_channels, find_layout
 from .report import Report
 
+
+from . import bv2mne 
 from . import beamformer
 from . import channels
 from . import chpi
