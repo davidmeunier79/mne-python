@@ -2,7 +2,7 @@
 
 # Author: Alexandre Fabre <alexandre.fabre22@gmail.com>
 
-
+from mayavi import mlab
 from .surface import (get_surface,
                      get_surface_areas)
 
@@ -355,6 +355,9 @@ class Brain(object):
         -------
         Author : Alexandre Fabre
         """
+
+        if figure is None:
+            figure = mlab.figure(size=size, bgcolor=bgcolor)
 
         obj = self.get(index=index, hemi=hemi,
                        lobe=lobe, name=name)
