@@ -112,7 +112,7 @@ class Volume(object):
         voxel = self.voxel.copy()
         
         # set a filter
-        contour = generic_filter(voxel, self.__filter_fct, footprint=np.ones((3, 3, 3)),
+        contour = generic_filter(input = voxel, function = self.__filter_fct, footprint=np.ones((3, 3, 3)),
                                  mode='constant', cval=0.0, origin=0.0)
         
         del self.count
@@ -216,12 +216,8 @@ def get_volume(mri, fname_atlas, lobe_name, subject , hemi='lh', reduce_volume=T
     # get 3D matrix
     voxels = img.get_data()
 
-    affine = img.get_affine()
-
-    header = img.get_header()
-
     # get voxel dimension
-    pix_dim= header['pixdim'][2:5]   
+    pix_dim= img.header['pixdim'][2:5]   
 
     n_sag, n_axi, n_cor = voxels.shape
 
@@ -252,7 +248,7 @@ def get_volume(mri, fname_atlas, lobe_name, subject , hemi='lh', reduce_volume=T
 
         if point_pos:
             # get structure positions
-            pos = nib.affines.apply_affine(affine, point_pos)
+            pos = nib.affines.apply_affine(img.affine, point_pos)
 
             vox = np.where(voxels == lab, lab, 0)
             

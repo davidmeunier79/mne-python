@@ -4,12 +4,14 @@
 
 import warnings
 
-# from mayavi import mlab
+from mayavi import mlab
 import numpy as np
 import mne
 from mne import Label
 from mne.surface import complete_surface_info
+import nibabel as nib
 from nibabel import gifti
+
 from nibabel.gifti.gifti import GiftiImage, GiftiDataArray
 from mne.source_space import SourceSpaces
 # from surfer import Brain
@@ -323,7 +325,7 @@ def get_surface(fname, subject='S4', hemi='lh', trans=None):
         coords, triangles = mne.read_surface(fname)
     except Exception:
         try:
-            giftiImage = gifti.read(fname)
+            giftiImage = nib.load(fname)
 
             coords = giftiImage.darrays[0].data
             triangles = giftiImage.darrays[1].data
@@ -401,7 +403,7 @@ def get_surface_areas(surface, texture, subject='S4', hemi='lh',
 
     # Gt texture with gifti format (BainVisa)= labels of MarsAtlas
     if isinstance(texture, str):
-        giftiImage = gifti.giftiio.read(texture)
+        giftiImage = nib.load(texture)
         base_values = giftiImage.darrays[0].data
 
     else:
@@ -523,7 +525,7 @@ def get_surface_areas_old(surface, texture, subject='S4', hemi='lh',
 
     # Gt texture with gifti format (BainVisa)= labels of MarsAtlas
     if isinstance(texture, str):
-        giftiImage = gifti.giftiio.read(texture)
+        giftiImage = nib.load(texture)
         base_values = giftiImage.darrays[0].data
 
     else:
