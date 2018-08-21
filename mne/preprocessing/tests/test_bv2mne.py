@@ -62,51 +62,32 @@ def test_get_brain():
     brain = get_brain(subject, fname_surf_L, fname_surf_R, fname_tex_L, fname_tex_R,
                       0, fname_vol, name_lobe_vol, trans, fname_atlas, fname_color)
 
-    ## To show MarsAtlas parcels
-    ## brain.show()
+    
+    # To show MarsAtlas parcels
+    #brain.show() ### Ne fonctionne pas...
     ## To show the left frontal areas (problem in insula)
-    ## brain.show(hemi='lh', lobe=['Frontal'])
-    ## brain.show(hemi='lh', lobe=['Frontal'], name=['Insula'])
+    #brain.show(hemi='lh', lobe=['Frontal']) ### Ne fonctionne pas...
+    #brain.show(hemi='lh', lobe=['Frontal'], name=['Insula']) ### Ne fonctionne pas...
+    
     ## Create source space on surface and volume
-    #src = brain.get_sources(space=5, distance='euclidean')
+    src = brain.get_sources(space=5, distance='euclidean')
 
     ## Display sources in frontal lobe
-    ## brain.show_sources(src[0], hemi='lh', lobe=['Frontal'], sphere_color=(0.7, 0.7, 0.7))
+    #brain.show_sources(src[0], hemi='lh', lobe=['Frontal'], sphere_color=(0.7, 0.7, 0.7)) ### Ne fonctionne pas...
+    
     ## Display sources in occipital lobe
-    ## brain.show_sources(src[0], hemi='lh', lobe=['Occipital'])
+    #brain.show_sources(src[0], hemi='lh', lobe=['Occipital']) ### N'affiche rien
+    
     ## The show_brain option = True does not work because it calls a FS mesh which is not correctly oriented
-    ## figure = brain.show_sources(src[0], hemi='lh', lobe=['Occipital'], figure=figure, opacity=1, show_brain=False)
+    #figure = brain.show_sources(src[0], hemi='lh', lobe=['Occipital'], figure=figure, opacity=1, show_brain=False) ### Ne fonctionne pas...
+    
     ## Display sources in the motor cortex
-    ## brain.show_sources(src[0], hemi='lh', lobe=['Frontal'], name=['Mdl'], opacity=1)
+    #brain.show_sources(src[0], hemi='lh', lobe=['Frontal'], name=['Mdl'], opacity=1) ## Ne fonctionne pas...
 
-    #brain.set_index()
+    brain.set_index()
 
     ## Does no work for hemi='all'
-    #brain.show_sources(src[1], hemi='lh', lobe=['Subcortical'], name=['Thal'], opacity=0.1)
-
-#def test_coregister_fiducials():
-    #"""Test coreg.coregister_fiducials()"""
-    ## prepare head and MRI fiducials
-    #trans = Transform('head', 'mri',
-                      #rotation(.4, .1, 0).dot(translation(.1, -.1, .1)))
-    #coords_orig = np.array([[-0.08061612, -0.02908875, -0.04131077],
-                            #[0.00146763, 0.08506715, -0.03483611],
-                            #[0.08436285, -0.02850276, -0.04127743]])
-    #coords_trans = apply_trans(trans, coords_orig)
-
-    #def make_dig(coords, cf):
-        #return ({'coord_frame': cf, 'ident': 1, 'kind': 1, 'r': coords[0]},
-                #{'coord_frame': cf, 'ident': 2, 'kind': 1, 'r': coords[1]},
-                #{'coord_frame': cf, 'ident': 3, 'kind': 1, 'r': coords[2]})
-
-    #mri_fiducials = make_dig(coords_trans, FIFF.FIFFV_COORD_MRI)
-    #info = {'dig': make_dig(coords_orig, FIFF.FIFFV_COORD_HEAD)}
-
-    ## test coregister_fiducials()
-    #trans_est = coregister_fiducials(info, mri_fiducials)
-    #assert trans_est.from_str == trans.from_str
-    #assert trans_est.to_str == trans.to_str
-    #assert_array_almost_equal(trans_est['trans'], trans['trans'])
+    #brain.show_sources(src[1], hemi='lh', lobe=['Subcortical'], name=['Thal'], opacity=1) # bug (pas mieux avec 0.1 -> 1)
 
 
 #@testing.requires_testing_data
