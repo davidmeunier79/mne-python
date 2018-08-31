@@ -9,12 +9,14 @@ from .surface import (get_surface,
 from .volume import get_volume
 from .source import (get_brain_sources,
                     show_surface_sources)
-from mne.source_space import SourceSpaces
+from mne.source_space import (SourceSpaces, read_source_spaces)
+
 from .data import (read_serialize,
                   Master,
                   serialize,
                   create_param_dict)
 import numpy as np
+import os
 
 class Brain(object):
     def __init__(self, surfaces=None, volumes=None, surface_master=None):
@@ -107,6 +109,7 @@ class Brain(object):
 
         return element
 
+    ### pas sur de voir l'interet de l'index, jamais utilisé a part dans le plot???
     def set_index(self, index=None):
         """set structures index
 
@@ -128,6 +131,8 @@ class Brain(object):
             index = struct[struct!=self.name_obj]
         elif not index in struct:
             raise ValueError('index must be \'surface\' or \'volume\'')
+        
+        ### Not sure I get what obj and name_obj are used for... in particular it seems it cannot get BOTH surfaces and volumes together???
         
         if index == 'surface' and self.surfaces is not None:
             self.obj = self.surfaces
@@ -162,7 +167,7 @@ class Brain(object):
         src = [[], []]
 
         for hemi in ['lh', 'rh']:
-
+            
             if self.surfaces is not None:
                 if hemi in self.surfaces:
                     master = None
@@ -184,7 +189,6 @@ class Brain(object):
                     # get volume sources
                     # pack = True, sources will be packed
                     sources_volume, _ = get_brain_sources(self.volumes[hemi], space, remains, pack=True)
-
                     src[1].append(sources_volume)
         
         # do not keep the empty hemisphere
@@ -192,9 +196,9 @@ class Brain(object):
         length = len(src)
         if length == 1:
             src = src[0]
-        elif src == 0:
+        elif src == 0: ### pas sur de cela non plus (length == 0 plutot?)
             src = None
-
+            
         return src
 
     def get_index(self, index=None, hemi='all', lobe=None, name=None):
@@ -485,7 +489,7 @@ def get_brain(subject, fname_surf_L=None, fname_surf_R=None, fname_tex_L=None,
         The filename of color atlas
     Returns
     -------
-    figure : Figure object
+    brain : Brain object
     -------
     Author : Alexandre Fabre
     """
@@ -532,7 +536,7 @@ def get_brain(subject, fname_surf_L=None, fname_surf_R=None, fname_tex_L=None,
         for hemi in list_hemi:
             cour_volume = get_volume(fname_vol, fname_atlas, name_lobe_vol, subject,
                                      hemi, True)
-
+            print (cour_volume)
             volumes.append(cour_volume)
 
     print('[done]')
@@ -540,3 +544,56 @@ def get_brain(subject, fname_surf_L=None, fname_surf_R=None, fname_tex_L=None,
     brain = Brain(surfaces, volumes)
 
     return brain
+
+def save_brain_src_as_fif (brain_src, save_dir,subject):
+    
+    #from mne.io.constants import FIFF
+    from mne.source_space import _get_hemi
+    
+    if not os.path.exists(save_dir):
+        
+        os.makedirs(save_dir)
+        
+    for bil_src,name in zip(brain_src, ['surf','vol']):
+        
+        print (name)
+        
+        for src in bil_src:
+        
+            hemi = _get_hemi(src[0])[0] 
+            
+            print (hemi)
+            
+            src.save(fname = os.path.join(save_dir,"source_" + subject + "_" + name + "_" + hemi + "-src.fif"), overwrite = True)
+            
+
+def load_brain_src_as_fif (load_dir,subject):
+    
+    #from mne.io.constants import FIFF
+    
+    assert os.path.exists(load_dir), "Error, can not access path {}".format(load_dir)
+        
+    brain_src = []
+    
+    for name in ['surf','vol']:
+        
+        print (name)
+        
+        hemi_src = []
+        
+        for hemi in ['lh','rh']:
+        
+            print (hemi)
+            
+            fname = os.path.join(load_dir,"source_" + subject + "_" + name + "_" + hemi + "-src.fif")
+            
+            src = read_source_spaces(fname)
+            
+            hemi_src.append(src)
+            
+        brain_src.append(hemi_src)
+        
+    return brain_src
+
+            
+            
