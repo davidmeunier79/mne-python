@@ -63,13 +63,16 @@ def get_brain_sources(obj, space=5, distance=None, remains=None, pack=True,
             cour_src = get_surface_sources(cour_obj, space, distance, remains)
         else:
             cour_src = get_volume_sources(cour_obj, space, remains)
-
+                
         print('    ' + cour_obj.name + '-' + cour_obj.hemi)
 
         remove_nb += cour_src[0]['removes']
         remain_nb += cour_src[0]['nuse']
+        
+        
         src.append(cour_src)
 
+        
     if pack:
         pos = None
         normals = None
@@ -96,9 +99,12 @@ def get_brain_sources(obj, space=5, distance=None, remains=None, pack=True,
 
         # pack sources
         src, index_pack_src = sources_pack(src, pos, normals, triangles)
+        
         for i in range(len(obj)):
             if hasattr(obj[i], 'index_pack_src'):
                 obj[i].index_pack_src = index_pack_src[i]
+
+            
     else:
         src = SourceSpaces(src)
 
@@ -191,6 +197,7 @@ def get_surface_sources(surface, space=5, distance='euclidean', remains=None):
     rr = surface.pos * 1e-3
 
     # Change index for hemi
+    #### identique aux variables FIFF.FIFFV_MNE_SURF_LEFT_HEMI utilisé dans source_space.py _get_hemi?
     if surface.hemi=='lh':
         Id = 101
     elif surface.hemi=='rh':
@@ -260,15 +267,24 @@ def get_volume_sources(volume, space=5, remains=None):
     # Pos is in voxels coords not mm
     rr = volume.pos * 1e-3
 
+    
     if volume.hemi=='lh':
         Id = 101
     elif volume.hemi=='rh':
         Id = 102
+    ### plus logique avc vol, apparait plutot comme une surface 3D autour d'un volume, d'ou peut etre le nom d'avant.
+    #src = [{'rr': rr, 'coord_frame': np.array((FIFF.FIFFV_COORD_MRI,), np.int32), 'type': 'vol', 'id': Id,
+            #'np': volume.pos_length, 'nn': volume.normals, 'inuse': inuse, 'nuse': remains, 'dist': None,
+            #'nearest': None, 'use_tris': None, 'nuse_tris': 0, 'vertno': arg_min, 'patch_inds': None,
+            #'tris': None, 'dist_limit': None, 'pinfo': None, 'ntri': 0, 'nearest_dist': None, 'removes': removes}]
+
     src = [{'rr': rr, 'coord_frame': np.array((FIFF.FIFFV_COORD_MRI,), np.int32), 'type': 'surf', 'id': Id,
             'np': volume.pos_length, 'nn': volume.normals, 'inuse': inuse, 'nuse': remains, 'dist': None,
             'nearest': None, 'use_tris': None, 'nuse_tris': 0, 'vertno': arg_min, 'patch_inds': None,
             'tris': None, 'dist_limit': None, 'pinfo': None, 'ntri': 0, 'nearest_dist': None, 'removes': removes}]
 
+    print (src[0]['nn'])
+           
     src = SourceSpaces(src)
 
     return src
@@ -399,7 +415,11 @@ def sources_pack(src, pos=None, normals=None, triangles=None, unit='mm'):
         remains = src_nb
         surf_length = pos_nb
         rr = np.array(rr)
-
+        
+        ### Otherwise leads to an error when saving ...
+        normals = np.array(normals)
+        
+        
     # pack sources with surface master
     else:
         if unit == 'mm':
@@ -449,6 +469,8 @@ def sources_pack(src, pos=None, normals=None, triangles=None, unit='mm'):
     # Need to become an array not a list
     rr = np.array(rr)
 
+    print (normals.shape)
+    
     src_dict.update(dict(rr=rr, inuse=inuse, np=surf_length,
                          nuse=remains, nn=normals,
                          tris=triangles, ntri=ntri,
