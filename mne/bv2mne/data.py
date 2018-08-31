@@ -105,7 +105,7 @@ def create_trans(subject, fname, fname_out):
         write_trans(fname_out, trans)
         
     else:
-        with open(fname_out, 'w') as matfile: ### un autre nom semblerait judiceiux pour eviter la confuction avec le matfile de la partie precedente de la fonction
+        with open(fname_out, 'w') as matfile: ### un autre nom semblerait judicieux pour eviter la confuction avec le matfile de la partie precedente de la fonction
             for i in range(len(trans)):
                 for j in range(len(trans[i])):
                     matfile.write(str(trans[i][j])+' ')
@@ -131,7 +131,7 @@ def compute_trans(pos, trans):
 def read_texture_info(filename, hemi):
 
     """
-        Read file with informations for each parcels
+        Read file with informations for each parcel
     """
 
     info_dict={}
