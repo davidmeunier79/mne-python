@@ -108,8 +108,8 @@ class Surface(object):
     def to_string(self):
         """ Return the information about instance of this class """
 
-        return ("\nvertices : {}\ntriangles : {}\nnumber of vertices : {}\nnumber of triangles : {}".\
-                format(self.pos, self.triangles, self.pos_length, self.triangles_length))
+        return ("\nvertices : {}\ntriangles : {}\nnumber of vertices : {}\nnumber of triangles : {}\nHas index_pack_src: {}".\
+                format(self.pos, self.triangles, self.pos_length, self.triangles_length, self.index_pack_src is not None))
 
     def save_as_ref(self, fileformat='white'):
         self.save_surface(filename='{0}\surf\{1}.{2}'.format(self.subject,
