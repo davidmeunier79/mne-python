@@ -63,6 +63,20 @@ class Volume(object):
 
         self.__surface = None
 
+    def __repr__(self):
+        """ Overload the method that return a printable representation of the object  """
+
+        return self.to_string
+
+    @property
+    def to_string(self):
+        """ Return the information about instance of this class """
+
+        return ("\nName: {}\nLobe: {}\nSurface: {}\nLabel: {}\nHas index pack src: {}\n".\
+                format(self.name, self.lobe, self.__surface,self.label, self.index_pack_src is not None))
+
+
+    #### pas evident sur de voir l'interet de cette fonction
     def get_sources(self, space=5, remains=None):
         """get sources in volume
 
