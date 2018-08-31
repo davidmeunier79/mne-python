@@ -498,7 +498,7 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
 
 
 @verbose
-def apply_dics_csd(csd, filters, verbose=None):
+def apply_dics_csd(csd, filters, src = None, verbose=None):
     """Apply Dynamic Imaging of Coherent Sources (DICS) beamformer weights.
 
     Apply a previously computed DICS beamformer to a cross-spectral density
@@ -568,9 +568,10 @@ def apply_dics_csd(csd, filters, verbose=None):
 
     logger.info('[done]')
 
+    print (vertices)
     # XXX we should pass src to _make_stc
     return (_make_stc(source_power.reshape(-1, n_freqs), vertices=vertices,
-                      tmin=0, tstep=1, subject=subject), frequencies)
+                      tmin=0, tstep=1, subject=subject, src = src), frequencies)
 
 
 def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
