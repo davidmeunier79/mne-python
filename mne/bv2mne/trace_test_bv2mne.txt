@@ -1,0 +1,488 @@
+dans le jupyter notebook test_visualization.ipnb
+
+(- warning pydicom - install avec pip - version conda depassé ---- pas forcemnt lié au projet...)
+
+- commenté "import changepath"
+
+-> dependance a :
+	-mne (OK), 
+	-sklearn (OK), 
+	-Pycluster ( conda install -c bioconda pycluster), 
+	-gdist (conda install -c mmwoodman gdist -> conflit avec mkl_fft; pip install gdist -> erreur Cython (pip install Cython; pip install gdist) -> OK
+	-mayavi, imayavi (OK)
+
+### Premiere case du ipynb OK! ####
+
+
+(Rq: rendre plus clair les dependances de packages (mne, sklearn) entre les import (import brain, source, etc.)
+(Dans le refactorisation du projet, ca se fait naturellement lors du python setup.py)
+
+
+########## par la suite (pas acces au projet)
+
+----- fichier pointé par Andrea: marsatlas_hga.py, fonction create_source_model
+
+### attention extra_code ferait mieux d'etre dans les "snippets" (ou gist dans githib)
+
+les infos dont on a besoin pour faire tourner les unittests? : 
+
+
+	# -------------------------------------------------------------------------------------------------------------------
+    # Anatomical data
+    # -------------------------------------------------------------------------------------------------------------------
+    # White matter meshes
+	fname_surf_L = subjects_dir + '{0}/surf/{0}_Lwhite.gii'.format(subject)
+	fname_surf_R = subjects_dir + '{0}/surf/{0}_Rwhite.gii'.format(subject)
+
+    # MarsAtlas surface parcellation from Brainvisa
+    fname_tex_L = subjects_dir + '{0}/tex/{0}_Lwhite_parcels_marsAtlas.gii'.format(subject)
+    fname_tex_R = subjects_dir + '{0}/tex/{0}_Rwhite_parcels_marsAtlas.gii'.format(subject)
+    
+    # MarsAtlas volume parcellation from Brainvisa
+    fname_vol = subjects_dir + '{0}/vol/{0}_parcellation.nii.gz'.format(subject)
+    
+    name_lobe_vol = ['Subcortical'] ### Pourquoi fixé ?
+    
+    # Referential file list (standard files to be added)
+    fname_trans_ref = subjects_dir + 'referential/referential.txt'
+    fname_trans_out = subjects_dir + '{0}/ref/{0}-trans.trm'.format(subject)
+    
+    Ce sont les sorties de la fonction?
+    
+    # Brain object file
+    fname_brain = subjects_dir + '{0}/src/{0}-brain.pickle'.format(subject)
+    # Source space file
+    fname_src = subjects_dir + '{0}/src/{0}-src.pickle'.format(subject)
+
+A rajouter dans les templates de MNE?
+
+    # MarsAtas files
+    fname_atlas = subjects_dir + 'marsatlas/MarsAtlas_BV_2015.xls'  # Labelling xls file
+    fname_color = subjects_dir + 'marsatlas/MarsAtlas.ima'  # Color palette
+
+
+create_trans: ok semble propre a BrainVisa?
+
+
+### recensement des fichiers:
+
+Les fichiers :
+- outer_skin.surf  
+- inner_skull.surf  
+- outer_skull.surf
+se trouvent dans: 
+db_freesurfer/meg_te/subject_01/bem
+
+
+
+Google docs:
+
+
+1) Marsbar -> coregister
+
+import brainvisa
+run db_freesurferimport freesurfer in brain BrainVisa
+
+create decimated surface
+
+
+############################################################
+15k mesh (differeent by subjetc)
+
+decimation ~5k
+
+MarsAtlas -> 96 parcels and gamma activity   is computed for each area
+
+new -> group analysis at the source level (but equivalent between subjects)
+
+
+####################
+error in the beamforming in 14.0 but in 16 it seems to be solved
+
+reecrire code en 1page (no visualisation, no decimation)
+
+
+preprocessing is dependant on each experiment (choosing the trigger)
+
+Mne_analyse in C -> python version (mne_coregister)
+
+
+marsatlas_hga.py -> stack all information  from preprocessing, brain visa - coregister -> create_source_model (get_brain : doing decimation)
+
+compute_single_trial -> 2eme fonction (using pickled objects) but now there is a functino in mne - problem = not compatible)
+
+writing the dataflow (what comes in , what format, where it comes from)
+
+
+
+
+
+
+
+(-trans.fif = after coregistration)
+
+a source space (from brain visa)
+
+a BEM (from freesurfer)
+
+problem = different transformation (rotation matrices) in file referential
+
+mne_watershed in mne but calls freesurfer
+
+setup_source_model (rewrote for pickle) -> create source model . in bv2mne now implemented as forward_model using pickle files
+-> where we should start to include brainvisa
+
+
+get_epochs dict = new function using some parts of dics, some are not
+
+make_dics / apply_dics
+(voir tutorial raw fif)
+
+
+-> modification of the source_model.py
+
+############################### sur les données databases_sample
+
+python marsatlas_hga.py
+
+erreurs dans source_analysis.py:
+- csd_epochs -> csd_multitaper et csd_fourier depuis la version 0.16.1
+- #from mne.beamformer import dics_source_power (ne semble pas utiliser)
+
+# modif sur string "+" -> os.path.join pour les noms de fichiers 
+
+######### cette partie semble poser problem avec l'implementation qui est faite dans le nouvel MNE
+# https://github.com/mne-tools/mne-python/issues/3249
+#power_time, vertno = dics_source_power_epochs(epochs.info, fwd, csds, avg_csds)
+# semble avoir ete resolu en tf_dics ?
+
+
+
+#make_forward_solution : erreur avec l'ordre des arguments, fname_fwd n'est plus present dans la nouvelle version de MNE et était interpreté comme à la place de meg = True
+
+# toute la partie:
+
+    # Set orientation of the source
+    if force_fixed:
+        # Force fixed
+        fwd = mne.read_forward_solution(fname_fwd, force_fixed=True)
+    elif surf_ori:
+        # Surface normal
+        fwd = mne.read_forward_solution(fname_fwd, surf_ori=True)
+    else:
+        # Free like a bird
+        fwd = mne.read_forward_solution(fname_fwd)
+
+semble obsolete. Se passe bien mais n'est pas le model fwd n'est pas sauvé / ajout mne.write_forward_solution
+
+## csd_multitaper() got an unexpected keyword argument 'fsum'
+-> suppression de fsum de get_epochs_dics, 
+
+#correction d'un bug mineur dans mne: csd.py, ligne 77 : self._data = data -> self.data = data
+
+#creation d'un fichier beamformer.py dans bv2mne contenant les deux fonctions: 
+dics_source_power et dics_source_power_epochs qui sont dans le mne d'Andrea
+
+_setup_picks : supprimé picks
+
+########## preprocessing
+
+error Q[s[i], a[i]] = 1 -> a -> a.as_type(int)
+
+
+subjects_dir + -> os.path.join(subjects_dir,
+
+OK retour à compute_singletrial_source_power
+-> probleme with trans.fif
+
+
+
+########## concentration sur les structures brain et src créées dans create_source_model
+
+src[0] -> Cortical
+src[1] -> Subcortical
+
+D'apres Andrea, pas besoin de preprocessing pour l'application des fonctiones, mais quand meme source2atlas fait explicitement appel a brain.volumes et brain.surfaces...
+
+->Copié a partir de /hpc/comco/basanisi.r le fichier trans du subjetc_01
+
+Ok semble aller pour le trans
+
+# error   
+File "/home/INT/meunier.d/Tools/Python/Packages/bv2mne/beamformer.py", line 292, in dics_source_power_epochs
+    Cm_avg += reg * np.trace(Cm_avg) / len(Cm_avg) * np.eye(len(Cm_avg))
+ValueError: non-broadcastable output operand with shape (30381,1) doesn't match the broadcast shape (30381,30381)
+
+-> probleme vient de l'absence de avg_csd (calculé par le "csd_epochs" precedemmment avec l'ajout d'un marqueur avg_tapers dans la version de MNE d'Andrea
+
+-> utilisation du tf_dics a la place de dics_source_power_epochs
+
+        freq_bins = [(fmin,fmax)]
+        stcs = tf_dics(epochs, fwd, csds, tmin, tmax, freq_bins = freq_bins, tstep = tstep,win_lengths = [win_lengths],mode = "multitaper", n_ffts=n_fft, reg=0.05, label=label, inversion='matrix')
+
+-> plusieurs erreurs dans CrossSpectralDensity: __setstate__, __getstate__ et __getitem__ font appel a "_data" plutot que "data" -> erreur due a la version dev?
+
+venait de la correction indiquée l179 (_data -> data). Retour a _data et print csd._data dans source_analysis.py
+
+-> Fonctionne a present mais tf_dics indique une erreur: RuntimeWarning: src should not be None for have a robust guess of stc type.
+
+############ Probleme -> pas de puissance calculé...
+
+-> passage a make_dics + apply_dics_csd
+Attention dans le tutorial : https://7583-1301584-gh.circle-artifacts.com/0/html/auto_tutorials/plot_dics.html
+mode='vector' n'est plus implementé dans make_dics.py, modifié
+
+OK
+
+maintenant source2atlas
+
+n_time_points, n_src, n_trials = np.array(data).shape 
+## pas sur de comprendre le n_trials, en tout cas le apply_dics_csd a supprimé cette dimnesion (ou plutot l'a mise à 1...)
+
+En regardant le code de csd_morlet . csd_multitaper par rapport aux version d'Andrea, il semble que la moyenne des csd soit faite par defaut, sans possibilité de faire autrement. 
+
+Si je suis ce qui est indiqé ici:
+https://github.com/mne-tools/mne-python/issues/3249
+
+"Yes, the filter would be calculated on the CSD-matrix of all trials. It is basically a change in the code which makes it possible to have the computed filter returned. It can then be applied to, e.g., single trials or the data of one conditions.
+We are currently implementing this for the LCMV beamformer (see here for the PR: #4389 ) and the plan is to also implement it for the DICS beamformer."
+
+il semblerait que c'est au moment du apply on on peut faire sur les trials individuels??? Malgre, les csd obtenus par csd_morlet ou csd_multitaper a present ne permettent plus de  garder les csd au niveau des trials, donc le code mne est a modifié quand meme.
+
+############################################## Conclusion ##################################
+# J'ai quand meme l'impression qu'il y a 2 problemes differents ici :
+*Le premier concerne l'integration de marsAtlas et de données ici de BrainVisa dans MNE
+*Le deuxieme concerne la "mise à niveau" du calcul des DICS par la methode d'Andrea et fait sur la MNE 0.14, avec les nouvelles implementations dans MNE 0.16 ou 0.17 
+# J'ai l'impression malgré tout que le deuxieme point est primordial et doit etre fait en premier, car le code, par exemple source2atlas, ne fonctionnera pas si les DICS ne sont pas calcules comme dans le MNE d'aAndrea.
+
+############################################ retour sur les DICS:
+- modifications de MNE pour introduire le stockage de chaque csd par epoque puis creation d'une liste de CrossSpectralDensity avec chacun un csd (dans csp.py, modif de _execute_csd_function, csd_array_multitaper et csd_multitaper avec pour tous ajout de -> on_epochs = True dans les parametres
+
+- ajout d'un deuxieme calcul corresponda apres avg_csd : all_csda, puis application du filtre obtenu avec avg_csd sur chaque csd, et stockage de sa puissance.
+
+- modification des resultsats pour revenir a un array avec shape = n_time_points, n_src, n_trials, comme attendu dans source2atlas
+- creation des repertoires par session dans /hga
+
+-> ca fonctionne. A verifier quand meme :
+1) /home/INT/meunier.d/Tools/Python/Packages/bv2mne/source_analysis.py:214: RuntimeWarning: src should not be None for have a robust guess of stc type. ### src??
+2) <SourceEstimate  |  782 vertices, tmin : 0.0 (ms), tmax : 0.0 (ms), tstep : 1000.0 (ms), data shape : (782, 1)>
+(782, 1) ### tmin et tmax non pris en compte?
+
+####################### Retour sur la conversion des fichiers brainvisa dans Mne_analyse
+
+-> create_source_model
+On a deux  structure qui sont stocke en picle : brain et source (qui est realiése à partir de brain)
+
+## class Brain (create_source_model)
+
+pas clair l'interet des lignes 74 à 82: obj/name_obj: on ne peut avoir que l'un OU l'autre (volume OU surface???). Ou alors append???
+pourtant get_sources semble avoir la possibilité de ressortir les 2 types d'information.
+
+Le gros du boulot semble etre fait dans l'initialisation d'un objet Brain par get_brain, avec l'appel a des structures Surface et Volumes. Pas sur effectivement que la definition de classes soit judicieuse si seulement utilisé pour le stockage de l'ensemble des infos sans que la classe ne soit interssante a  manipuler en memoire vive.
+
+##utilisation des pickles (brain et source)
+src[0] et src[1] sont les attributs utilisés dans forward_model et correspondant respectivement aux sources pour les surfaces et les volumes . 
+
+le pickle de sources est une liste (surface/volume) de listes de 2 (rh/lh) objets SourceSpaces - ca ne vaut peut pas le coup de creer une structure juste pour cela?
+
+brain.volumes et brain.surfaces sont les attributs de Brain utilisés par source2atlas
+
+-> a regarder: source_analysis, fonction area_activity et la manip avec create_param_dict
+
+### A priori, la 'vraie' difference faite ici est la possibilité de lire des mesh de brainvisa au format gifti, plutot que de se contraindre a lire des fichiers freesurfer ".surf"
+
+## get_sources: utilise la structure de Brain, la difference entre surface et volume est faite par l'utilisation d'une distance = None (volume) ou distance = "euclidean", "dijkstra" (surface) -> pas tres intuitif
+
+## A voir si c'est plus interssant de passer les surfaces / volumes de Brain en parametres de create_source_model -> compute_singletrial_source_power, en tous cas le nom "Brain" est certainement pas tres bien choisi...
+
+###################### Conclusion:
+
+#on a deux etapes importantes de modifications a tester: 
+
+- la premiere est si le code actuel fonctionne correctement pour les DICS
+- la seconde concerne l'integration des données issues de BrainVisa dans MNE, et si la structure du code actuel (class Brain, pickle Brain et Source) doit etre modifié pour integration du code 
+
+######################## retour sur la structure des unittests:
+
+- pour les fichiers freesurfer et la coregistration, les fichiers se trouvent dans mne/io/tests/data
+- le fichier du code unittest proprement dit s'appelle mne/tests/test_coreg.py 
+- mettre le fichier dans mne/preprocessing/tests (test_bv2mne.py) semble plus adapté
+
+##### creation du repertoire mne/bv2mne (a voir si le nom sera modifié)
+- modif des fichiers __init__.py au niveau mne pour import repertoire bv2mne et creation  de __init__.py au niveau de bv2mne
+- ajout des fichiers : brain.py, connectivity.py, source.py, surface.py et volume.py
+- Ajout des import relatif (.brain, etc) 
+
+######### test_bv2mne.py -> from mne.bv2mne import get_brain seulement
+
+Probleme de cross-referenceement entre surface et source 
+-> resolu en ajoutant from .surface import get_surf_distance DANS la fonction get_surface_sources
+
+######### ajout data bv dans mne/io/tests/data
+
+######### Premier test: si on est capable de lire les fichiers gifti de brainvisa:
+
+test_get_brain adapté de brain test de brain.py
+
+Probleme avec le champ "subject", test si seulement en ecriture ou impose une arborescence complete?
+
+!!!! bug dans Brain get_brain(), bad_areas = [0, 42] en dur DANS la fonction (et non par defaut bad_areas en prarametre ene sert donc à rien)
+
+-> ok pour test_get_brain. Quand meme probleme avec le champ subject (a voir si peut etre supprimé)
+
+#### suite avec show et sources 
+brain.show() ### fonctionne avec matlab??? non, from mayavi import mlab etait decommenté
+par contre, les 3 fenetres issues des ".show()" ne perdurent pas et se ferment tout de suite 
+
+-> get_sources tourne mais pas les 3 shows (on laisse tomber)
+(probleme quand meme avec no_name-rh pour les label "Set sources on MarsAtlas cortical areas" )
+
+-> correction mineur dans volume, get_header() et get_affine() vont devenir deprecated et souleve un DeprecationWarning:
+-> .header et .affine a la place
+-> idem pour DeprecationWarning: giftiio.read() dans surface
+-> nib.load()
+
+avec brain.show_sources(src[1] ... ), erreur dans ndimage.filters.generic_filter pour float ->  integer
+
+#### on laisse tomber les "show()".
+
+############################# essai sur test_marsbar_hga ############################################
+
+-> ajout de la partie compute_singletrial_source_power. Probleme avec bem model, ou l'on a quand meme besoin de du subject_dir pour stockage du fichier (semble prvenir de MNE malgré tout...)
+
+############################# essai de sauver les fichier brain et sources en autre chose qu'en pickle...
+
+-> save_brain_src_as_fif dans test_bv2mne
+les surfaces se passent bien, mais les volumes bug (formatage ne correspondant pas. aussi dans l'afficage, tout un tas de vecteur a 3 cases a [0. 0. 0.] (coordonnees des vertex???)
+Probleme avec 'nn' pour les volumes a priori 
+
+write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS, this['nn'])
+  File "/home/INT/meunier.d/Tools/Python/Packages/mne-python/mne/io/write.py", line 141, in write_float_matrix
+    data_size = 4 * mat.size + 4 * (mat.ndim + 1)
+AttributeError: 'list' object has no attribute 'size'
+
+
+(dans source.py / get_brain_sources, on a l'utlisation d'un 'master pour les surfaces mais pas pour les volumes)
+
+########################### test des differentes etapes du DICS
+
+#### test_forward
+- relecture des sources (seulement les surfaces pour l'instant)
+- forward necessite les info de bem / oui inner_skull/outer_skull etc sont ajouté dans /bem
+- utilisation du repertoire avec nom du sujet dans tests/data, sinon pas en encore avec la fonction make_bem_model de MNE 
+-> OK
+
+? Faut-il comparer le resultat avec un motif obtenu precedemment?
+
+### test_dics_epochs
+- probleme avec les timings dans epochs (???) 
+-> c'est moi qui ait mal fait le preprocessing? ou bien j'ai melangé entre les manips?
+
+- stop pas mal de verbose
+
+- RuntimeWarning: src should not be None for have a robust guess of stc type.
+-> vient de apply_dics_csd
+-> OK ca marche (a tester quand meme)
+
+### test_source2atlas
+
+probleme avec index_pack_src (qui devrait etre dans l'objet surface, mais qui n'a pas l'air bien present
+(passé au test_bv2mne.ipynb pour facilité le debugage)
+
+semble ne pas etre utilisé dans Brain (dans get_sources , on omet a chaque fois le deuxieme element retourné par get_brain_sources, c.a.d index_pack_src)
+
+############# passage par le notebook test_marsbar_hga, pour refaire toute les etapes du fichier marsbar_hga.py
+### c'est au moment ou est appliqué get_sources que le index_pack_src est initialisé. Le fait de reconstruire brain ne suffit pas.
+
+#### repassage sur le fichier test_bv2mne.py
+
+Les architectures de unittest dans MNE sont beaucoup plus simples que celles developpées dans test_bv2mne (chaque fonction semble etre independamment)
+
+-> modif get_epochs_dics pour avec et sans on_epochs
+
+-> test de la concordance entre les 2 methodes + si correspond au nombre de windows de tmin /tmax
+
+-> OK pour plusieurs assert_true(isinstance(...)) dans les 4 fonctions
+
+#### retour save_brain_src_as_fif
+
+# le probleme no 1 est que tous les objets SourceSpaces dans get_sources semblent correspondre a des surfaces (au moins dans le nom qui y est stockée) mais au moment de l'instantiatin de brain, le name_obj est SOIT volume, SOIT surface, mais ne semble pas pouvoir etre les les deux? Est ce que c'est cette variable qui est utilisé au moment du get_sources??? 
+
+!!! quand meme pas top que lancé 2 fois d'affilié get_sources donnent une erreur, car des modifs sont faites dans brain
+
+-> correction d'une erreur dans source.py (get_volume_sources) -> type: 'surf' au lieu de 'vol'
+ERRATUM: en fait c'est peut etre fait expres car la definition du volume ici ne suit pas celle attendue par MNE (avec les info supplementaires dans _write_one_source_space...)
+
+
+
+entraine une erreur dans __repr__ de SourceSpaces ou un champ 'shape' est attendu pour type == 'vol'                                                    
+!! modife le code "normal" de Mne_analyse 
+-> seg_name n'est pas non plus implementé (modif du __repr__ de SourceSpaces pour integrer les volumes au sens de bv2mne) !! modife le code "normal" de Mne
+ 
+-> modif get_hemi pour que cela fonctionne avec les volumes également !! modife le code "normal" de Mne
+à verifier: FIFF.FIFFV_MNE_SURF_LEFT_HEMI = 101 (utilisé dans bv2mne avec la valeur numerique)
+
+-> ok au moins l'affichage des sources est cohérent
+
+### retour save_brain_src_as_fif
+
+On a lors du volume une erreur sur le champ 'nn' (normals). Les valeurs sont censes etre toutes a zeros ("Dixit Volume.__init__(): in volume, there is not directions for normals") mais devrait etre sous forme d'array et non de liste
+
+Apres plusieurs modifs , il se trouve que la classe "Volume" ne correspond a ce que MNE attend d'un volume, notamment les chang reg_name, src_mri_t, ras_mri_t, shape, qui ne sont pas stockés dans la def d'un volume.
+
+-> apres commentaire d'un bon gros chunk de données dans _write_one_source_space, OK fini...
+(pas sur que ce soit necessaire, car va necessiter de modifier la lecture aussi...)
+
+
+!! En allant dans les get_volumes pour comment sont generes les volumes a partir de la parcelisation , plusieurs elemets semblent posés probleme:
+1. Le "Volume" est en fait une _surface_ 3D a partir du volume. A ce moment pourquoi les normales sont manquantes?
+2. la fonction get_sources de volume.py appelle get_volume_sources de source.py sans ajouter quoique ce soit . Quel interet de dupliquer les fonctions?
+
+#### retour dans get_volume_sources avec type = "surf", mais le probleme avec les normales (nn) n'est pas encore resolu
+
+Probleme dans source.py get_volume_sources, a continuer...
+
+c'est dans source_pack que le src[0] seulement subit une modification de array -> liste
+
+dans pos == None -> normals = np.array(normals) et c'est bon!
+
+### retour sur les save_brain_src_as_fif / load_brain_src_as_fif
+
+Probleme avec les vertices dans get_epochs_dics (cherche a avoir 2 arrays plutot qu'un seul). Bizarrement, marche avec l'ancien fichier qui ne faisait que les vol??? A la place des surfaces... 
+effectivment marche avec le src[1][0], c'est a dire les volumes, et pas avec src[0][0] - a voir pourquoi?
+
+### En relancant tout... Ca a l'air de fonctionner ???
+
+### save/load brain surface pour eviter save_brain comme un pickle: trop compliqué, trop d'objet
+
+########################################################### Conclusion ############################################################
+
+Il y a en fait deux pull requests a faire: 
+    
+- la premiere concerne l'integration des DICS avec la methode ou les DICS sont calcules sur la moyenne des CSDs, puis appliqué sur chaque CSD individuel (i.e. pour chaque trial). La PR d'Andrea de https://github.com/mne-tools/mne-python/issues/3249 a ete en partie integrer, mais il faut quand meme modifié le code de MNE et notamment dans csd_multitaper (on_epochs = True). A verifier que le resultat est bien celui qui est attendu
+
+- la deuxieme est plus complexe, et concerne l'integration des surfaces/volumes issues de BrainVisa. 
+
+    - D'une part, dans le code d'Alexandre, il a certains problemes au niveau du code qui font qu'il n'est pas possible de separer la partie "Brain" de la partie "sources", en effet, la methode Brain.get_sources, qui retournent les sources, modifie egalement l'objet Brain (en particulier au niveau des index_pack_src, qui sont utilisés par la suite dans source2atlas sur brain.surfaces et brain.volumes)
+    
+    - D'autre part, les objets surfaces et volumes ne correspondent pas a ce que MNE definit comme une surface et un volume, notamment au niveau du stockage - par exemple, pour le volume, un certain d'information lié a un volume IRM (typiquement dans le header) ne sont pas present et font qu'il est difficile de stocker ces objets dans une format compatible avec MNE. Dans tous les cas, un pickle ne sera a mon avis pas accepté par MNE pour stocké l'objet Brain (en dehors du nom mal choisi...)
+    
+######## discussion
+
+get_sources -> fait par Guillaume directement dans BV
+
+decimation faites sur un cerveau moyen (1000 -> 5000 parcels)
+
+et retour sur l'anatomie
+
+maillage decimé directement
+
+avant: tout volume, puis surface
+
+probleme pour les volume sous corticals, decimé de maniere differentes ()
+
+mais de maniere sous cortical de freesurfer peut etre lu par MNE 
+
+code MNE a deja un code pour lire les surfaces decimés de FreeSurfer -> au lieu de lire les fichiers .surf , on utiliserait les routine pour lire les gii
+
+

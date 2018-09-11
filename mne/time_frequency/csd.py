@@ -1131,11 +1131,12 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
     n_blocks = int(np.ceil(n_epochs / float(n_jobs)))
     for i in range(n_blocks):
         epoch_block = X[i * n_jobs:(i + 1) * n_jobs]
-        if n_jobs > 1:
-            logger.info('    Computing CSD matrices for epochs %d..%d'
-                        % (i * n_jobs + 1, (i + 1) * n_jobs))
-        else:
-            logger.info('    Computing CSD matrix for epoch %d' % (i + 1))
+        
+        #if n_jobs > 1:
+            #logger.info('    Computing CSD matrices for epochs %d..%d'
+                        #% (i * n_jobs + 1, (i + 1) * n_jobs))
+        #else:
+            #logger.info('    Computing CSD matrix for epoch %d' % (i + 1))
 
         csds = parallel(my_csd(this_epoch, *params)
                         for this_epoch in epoch_block)

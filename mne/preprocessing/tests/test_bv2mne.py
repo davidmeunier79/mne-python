@@ -202,6 +202,20 @@ def test_get_epochs_dics():
     
     ## test ajout des sources
     
+    ##################################### necessite de refaire Brain (sinon en le sauvant en pickle...)
+
+    #name_lobe_vol = ['Subcortical']
+
+    ## Create brain object
+    #brain = get_brain(subject, fname_surf_L, fname_surf_R, fname_tex_L, fname_tex_R,
+                      #0, fname_vol, name_lobe_vol, trans, fname_atlas, fname_color)
+
+    #print (brain.surfaces)
+    
+    ## necessite de reappliquer la fonction get_sources, sinon les index_pack_src (dans brain) ne sont pas remplis ...
+    #src = brain.get_sources(space=5, distance='euclidean')
+    
+    #################" 
     src = load_brain_src_as_fif(os.path.join(subj_data_dir,"src"),subject)
     
     #src = []
@@ -217,7 +231,7 @@ def test_get_epochs_dics():
     
     print('\n----------------------------------------------\n Epoched DICS for cortical soures\n----------------------------------------------\n')
 
-    epoch_power_event, epoch_time_event = get_epochs_dics(epochs_event, fwd_cort, src = src[1][0], tmin=t_event[0], tmax=t_event[1], tstep=tstep, ## sinon c'est bien trop long...
+    epoch_power_event, epoch_time_event = get_epochs_dics(epochs_event, fwd_cort, src = src[0][0], tmin=t_event[0], tmax=t_event[1], tstep=tstep, ## sinon c'est bien trop long...
                                       win_lengths=win_lengths, mode='multitaper',
                                       fmin=fmin, fmax=fmax, mt_bandwidth=mt_bandwidth,
                                       mt_adaptive=False, on_epochs=True, avg_tapers=False, pick_ori=None)
@@ -228,7 +242,7 @@ def test_get_epochs_dics():
     
     print('\n----------------------------------------------\n Average DICS for cortical soures\n----------------------------------------------\n')
 
-    average_power_event, average_time_event = get_epochs_dics(epochs_event, fwd_cort, src = src[1][0], tmin=t_event[0], tmax=t_event[1], tstep=tstep, ## sinon c'est bien trop long...
+    average_power_event, average_time_event = get_epochs_dics(epochs_event, fwd_cort, src = src[0][0], tmin=t_event[0], tmax=t_event[1], tstep=tstep, ## sinon c'est bien trop long...
                                       win_lengths=win_lengths, mode='multitaper',
                                       fmin=fmin, fmax=fmax, mt_bandwidth=mt_bandwidth,
                                       mt_adaptive=False, on_epochs=False, avg_tapers=False, pick_ori=None)
@@ -275,18 +289,18 @@ def test_source2atlas():
     
     ##################################### necessite de refaire Brain (sinon en le sauvant en pickle...)
 
-    name_lobe_vol = ['Subcortical']
+    #name_lobe_vol = ['Subcortical']
 
-    # Create brain object
-    brain = get_brain(subject, fname_surf_L, fname_surf_R, fname_tex_L, fname_tex_R,
-                      0, fname_vol, name_lobe_vol, trans, fname_atlas, fname_color)
+    ## Create brain object
+    #brain = get_brain(subject, fname_surf_L, fname_surf_R, fname_tex_L, fname_tex_R,
+                      #0, fname_vol, name_lobe_vol, trans, fname_atlas, fname_color)
 
-    print (brain.surfaces)
+    #print (brain.surfaces)
     
-    # necessite de reappliquer la fonction get_sources, sinon les index_pack_src (dans brain) ne sont pas remplis ...
-    src = brain.get_sources(space=5, distance='euclidean')
+    ## necessite de reappliquer la fonction get_sources, sinon les index_pack_src (dans brain) ne sont pas remplis ...
+    #src = brain.get_sources(space=5, distance='euclidean')
     
-    print (brain.surfaces)
+    #print (brain.surfaces)
     
     ##################################################################################################################################################
     print('\n----------------------------------------------\n DICS for cortical sources\n----------------------------------------------\n')
